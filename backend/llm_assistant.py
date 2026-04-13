@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 MAX_JOB_LISTINGS_PER_REQUEST = 12
-MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
 
 class JobAnalysisResult(BaseModel):
     category: str = Field(description="Role category, e.g., AI Consulting, Digital, etc.")
