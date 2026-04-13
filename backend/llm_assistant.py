@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from typing import List
 
 MAX_JOB_LISTINGS_PER_REQUEST = 12
+MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
 
 class JobAnalysisResult(BaseModel):
     category: str = Field(description="Role category, e.g., AI Consulting, Digital, etc.")
@@ -94,24 +95,27 @@ Do NOT invent CV experience. Be consistent: batch_index must equal the JOB numbe
 Return one result object per listing (same count as jobs above), with batch_index matching N in === JOB N ===.
 """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                response_schema=BatchJobAnalysisResult,
-                temperature=0.2,
-            ),
-        )
-        data = json.loads(response.text)
-        items = data.get("results", [])
-        # Sort best matches first for the UI
-        items.sort(key=lambda x: (-int(x.get("fit_score", 0)), x.get("batch_index", 0)))
-        return {"results": items, "listing_count": len(listings)}
-    except Exception as e:
-        raise RuntimeError(f"Error calling Gemini API: {str(e)}")
+    last_error = None
+    for model_name in MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                    response_schema=BatchJobAnalysisResult,
+                    temperature=0.2,
+                ),
+            )
+            data = json.loads(response.text)
+            items = data.get("results", [])
+            items.sort(key=lambda x: (-int(x.get("fit_score", 0)), x.get("batch_index", 0)))
+            return {"results": items, "listing_count": len(listings)}
+        except Exception as e:
+            last_error = e
+            continue
+    raise RuntimeError(f"All models failed. Last error: {str(last_error)}")
 
 
 def analyze_job_and_cv(cv_text: str, job_text: str, user_api_key: str = None) -> dict:
@@ -154,17 +158,21 @@ Do NOT invent any experience not present in the CV. Keep the generated texts (su
 Based on the System instructions and the CV/Job pairs above, perform the job analysis and return JSON.
 """
 
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                response_mime_type="application/json",
-                response_schema=JobAnalysisResult,
-                temperature=0.2, # Low temp for consistency
-            ),
-        )
-        return json.loads(response.text)
-    except Exception as e:
-        raise RuntimeError(f"Error calling Gemini API: {str(e)}")
+    last_error = None
+    for model_name in MODELS:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                    response_schema=JobAnalysisResult,
+                    temperature=0.2,
+                ),
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            last_error = e
+            continue
+    raise RuntimeError(f"All models failed. Last error: {str(last_error)}")
