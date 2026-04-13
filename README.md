@@ -7,6 +7,8 @@ An AI-powered job application assistant that analyzes your CV against job descri
 ![Gemini](https://img.shields.io/badge/Google%20Gemini-AI-4285F4?logo=google&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
+### [Try it live on Hugging Face](https://huggingface.co/spaces/onglezi/JobAssist-AI)
+
 ---
 
 ## Overview
