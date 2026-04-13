@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Job Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <div class="logo">
+            <h1>JobAssist<span class="highlight">AI</span></h1>
+        </div>
+        <p class="tagline">Match your CV to one job — or filter many listings at once</p>
+    </header>
+
+    <main class="app-container">
+        <!-- Input Form Section -->
+        <section class="card input-card">
+            <h2 id="form-section-title">Analyze a job</h2>
+            <form id="job-form">
+                <div class="form-group mode-row">
+                    <span class="mode-label">What do you want to do?</span>
+                    <div class="mode-toggle">
+                        <label class="mode-option">
+                            <input type="radio" name="analysis-mode" value="single" checked>
+                            <span>One job (full analysis)</span>
+                        </label>
+                        <label class="mode-option">
+                            <input type="radio" name="analysis-mode" value="bulk">
+                            <span>Many jobs (keep only good fits)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="cv-upload">Upload your CV (PDF)</label>
+                    <div class="file-drop-area">
+                        <span class="file-msg">Drag & Drop or Click to Select PDF</span>
+                        <input type="file" id="cv-upload" name="cv-upload" accept="application/pdf" required>
+                    </div>
+                </div>
+
+                <div class="form-group" id="single-job-group">
+                    <label for="job-desc">Job description</label>
+                    <textarea id="job-desc" placeholder="Paste the full job description here..."></textarea>
+                </div>
+
+                <div class="form-group hidden" id="bulk-jobs-group">
+                    <label for="jobs-bulk">Job postings (paste several)</label>
+                    <textarea id="jobs-bulk" class="textarea-tall" placeholder="Paste the first job ad here, then on its own line type:
+
+---NEXT JOB---
+
+Then paste the next job, and repeat. Up to 12 postings per run."></textarea>
+                    <small>Separate each posting with a line containing only <code>---NEXT JOB---</code> (from LinkedIn, company sites, etc.). We score each one against your CV.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="api-key" class="optional-label">Google Gemini API Key (Required for free use)</label>
+                    <input type="password" id="api-key" placeholder="Enter your free Gemini API key...">
+                    <small>Get yours in 10s for free at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent);">Google AI Studio</a></small>
+                </div>
+
+                <button type="submit" id="analyze-btn" class="btn-primary">
+                    <span class="btn-text" id="submit-btn-text">Compute fit &amp; generate</span>
+                    <span class="loader hidden"></span>
+                </button>
+                <div id="error-message" class="error hidden"></div>
+            </form>
+        </section>
+
+        <!-- Bulk filter results -->
+        <section id="bulk-results-section" class="card results-card hidden">
+            <div class="bulk-results-header">
+                <div>
+                    <h2>Jobs vs your CV</h2>
+                    <p id="bulk-meta" class="sub-text"></p>
+                </div>
+                <label class="filter-toggle">
+                    <input type="checkbox" id="only-good-fits" checked>
+                    <span>Show only roles worth applying to</span>
+                </label>
+            </div>
+            <p class="filter-hint">Hides “Do not apply” and very low scores so you can focus on realistic options.</p>
+            <div id="bulk-job-list" class="bulk-job-list"></div>
+        </section>
+
+        <!-- Results Section (Hidden initially) -->
+        <section id="results-section" class="card results-card hidden">
+            <div class="result-header">
+                <h2>Analysis Results</h2>
+                <div class="score-ring">
+                    <svg viewBox="0 0 36 36" class="circular-chart">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path id="score-circle" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <text id="score-text" x="18" y="20.35" class="percentage">0</text>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="insights-grid">
+                <div class="insight-item">
+                    <h3>Verdict</h3>
+                    <p id="rec-text" class="verdict-label highlight-box">---</p>
+                </div>
+                <div class="insight-item">
+                    <h3>Category & Seniority</h3>
+                    <p id="category-text">---</p>
+                    <p id="seniority-text" class="sub-text">---</p>
+                </div>
+            </div>
+
+            <div class="flags-container">
+                <div class="flag-box orange-box">
+                    <h3>Missing Keywords</h3>
+                    <ul id="missing-list"></ul>
+                </div>
+                <div class="flag-box red-box">
+                    <h3>Red Flags</h3>
+                    <ul id="flags-list"></ul>
+                </div>
+            </div>
+
+            <div class="generated-assets">
+                <h2>Tailored Assets</h2>
+                <div class="asset">
+                    <h3>CV Summary</h3>
+                    <div class="copy-box">
+                        <p id="cv-summary"></p>
+                    </div>
+                </div>
+                <div class="asset">
+                    <h3>Cover Letter</h3>
+                    <div class="copy-box">
+                        <p id="cover-letter"></p>
+                    </div>
+                </div>
+                <div class="asset">
+                    <h3>Recruiter Message (LinkedIn)</h3>
+                    <div class="copy-box">
+                        <p id="recruiter-message"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
